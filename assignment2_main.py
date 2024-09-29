@@ -560,9 +560,422 @@
 # if __name__ == "__main__":
 #     main()
 
+# ! latest code 29 sep 17:52
+# import cv2
+# import numpy as np
+# import os
+
+# # Function to load all images from the current folder
+# def load_images_from_folder(folder):
+#     images = []
+#     for filename in os.listdir(folder):
+#         if filename.endswith(".jpg"):  # Only process .jpg files
+#             img = cv2.imread(os.path.join(folder, filename), cv2.IMREAD_GRAYSCALE)
+#             if img is not None:
+#                 images.append((filename, img))
+#                 print(f"Loaded image: {filename}")  # Debug: Print the image loaded
+#             else:
+#                 print(f"Failed to load image: {filename}")  # Debug: Failed loading
+#     return images
+
+# # Function to create necessary output folders with better naming
+# def create_output_folders():
+#     base_folder = 'output'
+#     methods = ['otsu', 'kapur']
+#     optimizations = ['sa', 'vns']
+#     for method in methods:
+#         for opt in optimizations:
+#             for k in [2, 3, 4, 5]:  # Create separate folders for each k level
+#                 folder_path = os.path.join(base_folder, f"{opt}_{method}_k{k}")
+#                 if not os.path.exists(folder_path):
+#                     os.makedirs(folder_path)
+#                     print(f"Created folder: {folder_path}")  # Debug: Print folder creation
+
+# # Otsu’s Method Multilevel Thresholding
+# def otsu_multilevel_thresholding(image, levels):
+#     thresholds = []
+#     current_image = image.copy()
+
+#     for _ in range(levels - 1):
+#         thresh_value, _ = cv2.threshold(current_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+#         thresholds.append(thresh_value)
+#         current_image = np.where(current_image >= thresh_value, 0, current_image)
+
+#     segmented_image = np.zeros_like(image)
+#     for i, thresh in enumerate(sorted(thresholds)):
+#         segmented_image[np.where(image >= thresh)] = (i + 1) * (255 // levels)
+
+#     return segmented_image, thresholds
+
+# # Kapur’s Method Thresholding (maximizes entropy)
+# def kapur_threshold(image, levels):
+#     hist, bins = np.histogram(image.ravel(), bins=256, range=[0, 256])
+#     hist = hist.astype(np.float32) / hist.sum()
+
+#     def entropy(thresh):
+#         prob1 = hist[:thresh].sum()
+#         prob2 = hist[thresh:].sum()
+#         prob1 = prob1 if prob1 > 0 else 1
+#         prob2 = prob2 if prob2 > 0 else 1
+#         return -(np.log(prob1) * prob1 + np.log(prob2) * prob2)
+
+#     thresholds = []
+#     for _ in range(levels - 1):
+#         entropies = [entropy(thresh) for thresh in range(1, 255)]
+#         best_thresh = np.argmax(entropies)
+#         thresholds.append(best_thresh)
+#         image = np.where(image >= best_thresh, 0, image)
+
+#     segmented_image = np.zeros_like(image)
+#     for i, thresh in enumerate(sorted(thresholds)):
+#         segmented_image[np.where(image >= thresh)] = (i + 1) * (255 // levels)
+
+#     return segmented_image, thresholds
+
+# # Simulated Annealing for Thresholding Optimization
+# def simulated_annealing(image, objective_function, levels, initial_temperature=1000, cooling_rate=0.95):
+#     def perturb(thresholds):
+#         idx = np.random.randint(0, len(thresholds))
+#         thresholds[idx] += np.random.randint(-10, 10)
+#         thresholds = np.clip(thresholds, 0, 255)
+#         return thresholds
+
+#     current_thresholds = np.sort(np.random.randint(0, 255, size=(levels - 1)))
+#     current_cost = objective_function(image, current_thresholds)
+#     temperature = initial_temperature
+
+#     while temperature > 1:
+#         new_thresholds = perturb(current_thresholds.copy())
+#         new_cost = objective_function(image, new_thresholds)
+
+#         if new_cost < current_cost or np.random.random() < np.exp((current_cost - new_cost) / temperature):
+#             current_thresholds = new_thresholds
+#             current_cost = new_cost
+
+#         temperature *= cooling_rate
+
+#     return current_thresholds
+
+# # Variable Neighbourhood Search for Thresholding Optimization
+# def vns(image, objective_function, levels):
+#     current_thresholds = np.sort(np.random.randint(0, 255, size=(levels - 1)))
+#     best_cost = objective_function(image, current_thresholds)
+
+#     def local_search(thresholds):
+#         for i in range(len(thresholds)):
+#             for change in [-5, 5]:
+#                 new_thresholds = thresholds.copy()
+#                 new_thresholds[i] += change
+#                 new_thresholds = np.clip(new_thresholds, 0, 255)
+#                 new_cost = objective_function(image, new_thresholds)
+#                 if new_cost < best_cost:
+#                     return new_thresholds, new_cost
+#         return thresholds, best_cost
+
+#     while True:
+#         new_thresholds, new_cost = local_search(current_thresholds)
+#         if new_cost < best_cost:
+#             current_thresholds = new_thresholds
+#             best_cost = new_cost
+#         else:
+#             break
+
+#     return current_thresholds
+
+# # Objective function (Otsu)
+# def otsu_objective(image, thresholds):
+#     thresholds = [0] + sorted(thresholds) + [255]
+#     total_var = 0
+#     for i in range(len(thresholds) - 1):
+#         mask = (image >= thresholds[i]) & (image < thresholds[i+1])
+#         region = image[mask]
+#         if len(region) > 0:
+#             total_var += np.var(region) * len(region)
+#     return total_var
+
+# # Objective function (Kapur)
+# def kapur_objective(image, thresholds):
+#     thresholds = [0] + sorted(thresholds) + [255]
+#     total_entropy = 0
+#     for i in range(len(thresholds) - 1):
+#         mask = (image >= thresholds[i]) & (image < thresholds[i+1])
+#         hist, _ = np.histogram(image[mask], bins=256, range=[0, 256])
+#         hist = hist.astype(np.float32) / hist.sum()
+#         entropy = -np.sum(hist * np.log(hist + 1e-10))
+#         total_entropy += entropy
+#     return -total_entropy
+
+# # Save segmented image
+# def save_image(filename, image):
+#     print(f"Saving image to: {filename}")  # Debug: Print saving path
+#     cv2.imwrite(filename, image)
+
+# # Main code to load images and apply methods
+# def main():
+#     folder = './Ass2'  # This points to the current folder where your images are located
+#     images = load_images_from_folder(folder)
+
+#     # Check if images are loaded
+#     if not images:
+#         print("No images found in the folder.")  # Debug: No images case
+#         return
+
+#     # Create output folders with better names
+#     create_output_folders()
+
+#     for filename, image in images:
+#         # Get the filename without the extension
+#         name_without_extension = os.path.splitext(filename)[0]
+#         print(f"Processing image: {filename}")  # Debug: Print processing image
+
+#         for k in [2, 3, 4, 5]:
+#             print(f"Processing k={k}")  # Debug: Print current threshold level
+
+#             # Simulated Annealing + Otsu
+#             sa_thresholds = simulated_annealing(image, otsu_objective, k)
+#             segmented_sa_otsu = otsu_multilevel_thresholding(image, len(sa_thresholds) + 1)[0]
+#             save_image(f'output/sa_otsu_k{k}/{name_without_extension}_sa_otsu_k{k}.png', segmented_sa_otsu)
+
+#             # Simulated Annealing + Kapur
+#             sa_thresholds = simulated_annealing(image, kapur_objective, k)
+#             segmented_sa_kapur = kapur_threshold(image, len(sa_thresholds) + 1)[0]
+#             save_image(f'output/sa_kapur_k{k}/{name_without_extension}_sa_kapur_k{k}.png', segmented_sa_kapur)
+
+#             # Variable Neighbourhood Search + Otsu
+#             vns_thresholds = vns(image, otsu_objective, k)
+#             segmented_vns_otsu = otsu_multilevel_thresholding(image, len(vns_thresholds) + 1)[0]
+#             save_image(f'output/vns_otsu_k{k}/{name_without_extension}_vns_otsu_k{k}.png', segmented_vns_otsu)
+
+#             # Variable Neighbourhood Search + Kapur
+#             vns_thresholds = vns(image, kapur_objective, k)
+#             segmented_vns_kapur = kapur_threshold(image, len(vns_thresholds) + 1)[0]
+#             save_image(f'output/vns_kapur_k{k}/{name_without_extension}_vns_kapur_k{k}.png', segmented_vns_kapur)
+
+# if __name__ == "__main__":
+#     main()
+
+# ! CODE THA
+# import cv2
+# import numpy as np
+# import os
+# from skimage.metrics import structural_similarity as ssim
+# from skimage.metrics import peak_signal_noise_ratio as psnr
+
+# # Function to load all images from the current folder
+# def load_images_from_folder(folder):
+#     images = []
+#     for filename in os.listdir(folder):
+#         if filename.endswith(".jpg"):  # Only process .jpg files
+#             img = cv2.imread(os.path.join(folder, filename), cv2.IMREAD_GRAYSCALE)
+#             if img is not None:
+#                 images.append((filename, img))
+#                 print(f"Loaded image: {filename}")  # Debug: Print the image loaded
+#             else:
+#                 print(f"Failed to load image: {filename}")  # Debug: Failed loading
+#     return images
+
+# # Function to create necessary output folders with better naming
+# def create_output_folders():
+#     base_folder = 'output'
+#     methods = ['otsu', 'kapur']
+#     optimizations = ['sa', 'vns']
+#     for method in methods:
+#         for opt in optimizations:
+#             for k in [2, 3, 4, 5]:  # Create separate folders for each k level
+#                 folder_path = os.path.join(base_folder, f"{opt}_{method}_k{k}")
+#                 if not os.path.exists(folder_path):
+#                     os.makedirs(folder_path)
+#                     print(f"Created folder: {folder_path}")  # Debug: Print folder creation
+
+# # Otsu’s Method Multilevel Thresholding
+# def otsu_multilevel_thresholding(image, levels):
+#     thresholds = []
+#     current_image = image.copy()
+
+#     for _ in range(levels - 1):
+#         thresh_value, _ = cv2.threshold(current_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+#         thresholds.append(thresh_value)
+#         current_image = np.where(current_image >= thresh_value, 0, current_image)
+
+#     segmented_image = np.zeros_like(image)
+#     for i, thresh in enumerate(sorted(thresholds)):
+#         segmented_image[np.where(image >= thresh)] = (i + 1) * (255 // levels)
+
+#     return segmented_image, thresholds
+
+# # Kapur’s Method Thresholding (maximizes entropy)
+# def kapur_threshold(image, levels):
+#     hist, bins = np.histogram(image.ravel(), bins=256, range=[0, 256])
+#     hist = hist.astype(np.float32) / hist.sum()
+
+#     def entropy(thresh):
+#         prob1 = hist[:thresh].sum()
+#         prob2 = hist[thresh:].sum()
+#         prob1 = prob1 if prob1 > 0 else 1
+#         prob2 = prob2 if prob2 > 0 else 1
+#         return -(np.log(prob1) * prob1 + np.log(prob2) * prob2)
+
+#     thresholds = []
+#     for _ in range(levels - 1):
+#         entropies = [entropy(thresh) for thresh in range(1, 255)]
+#         best_thresh = np.argmax(entropies)
+#         thresholds.append(best_thresh)
+#         image = np.where(image >= best_thresh, 0, image)
+
+#     segmented_image = np.zeros_like(image)
+#     for i, thresh in enumerate(sorted(thresholds)):
+#         segmented_image[np.where(image >= thresh)] = (i + 1) * (255 // levels)
+
+#     return segmented_image, thresholds
+
+# # Simulated Annealing for Thresholding Optimization
+# def simulated_annealing(image, objective_function, levels, initial_temperature=1000, cooling_rate=0.95):
+#     def perturb(thresholds):
+#         idx = np.random.randint(0, len(thresholds))
+#         thresholds[idx] += np.random.randint(-10, 10)
+#         thresholds = np.clip(thresholds, 0, 255)
+#         return thresholds
+
+#     current_thresholds = np.sort(np.random.randint(0, 255, size=(levels - 1)))
+#     current_cost = objective_function(image, current_thresholds)
+#     temperature = initial_temperature
+
+#     while temperature > 1:
+#         new_thresholds = perturb(current_thresholds.copy())
+#         new_cost = objective_function(image, new_thresholds)
+
+#         if new_cost < current_cost or np.random.random() < np.exp((current_cost - new_cost) / temperature):
+#             current_thresholds = new_thresholds
+#             current_cost = new_cost
+
+#         temperature *= cooling_rate
+
+#     return current_thresholds
+
+# # Variable Neighbourhood Search for Thresholding Optimization
+# def vns(image, objective_function, levels):
+#     current_thresholds = np.sort(np.random.randint(0, 255, size=(levels - 1)))
+#     best_cost = objective_function(image, current_thresholds)
+
+#     def local_search(thresholds):
+#         for i in range(len(thresholds)):
+#             for change in [-5, 5]:
+#                 new_thresholds = thresholds.copy()
+#                 new_thresholds[i] += change
+#                 new_thresholds = np.clip(new_thresholds, 0, 255)
+#                 new_cost = objective_function(image, new_thresholds)
+#                 if new_cost < best_cost:
+#                     return new_thresholds, new_cost
+#         return thresholds, best_cost
+
+#     while True:
+#         new_thresholds, new_cost = local_search(current_thresholds)
+#         if new_cost < best_cost:
+#             current_thresholds = new_thresholds
+#             best_cost = new_cost
+#         else:
+#             break
+
+#     return current_thresholds
+
+# # Objective function (Otsu)
+# def otsu_objective(image, thresholds):
+#     thresholds = [0] + sorted(thresholds) + [255]
+#     total_var = 0
+#     for i in range(len(thresholds) - 1):
+#         mask = (image >= thresholds[i]) & (image < thresholds[i+1])
+#         region = image[mask]
+#         if len(region) > 0:
+#             total_var += np.var(region) * len(region)
+#     return total_var
+
+# # Objective function (Kapur)
+# def kapur_objective(image, thresholds):
+#     thresholds = [0] + sorted(thresholds) + [255]
+#     total_entropy = 0
+#     for i in range(len(thresholds) - 1):
+#         mask = (image >= thresholds[i]) & (image < thresholds[i+1])
+#         hist, _ = np.histogram(image[mask], bins=256, range=[0, 256])
+#         hist = hist.astype(np.float32) / hist.sum()
+#         entropy = -np.sum(hist * np.log(hist + 1e-10))
+#         total_entropy += entropy
+#     return -total_entropy
+
+# # Save segmented image
+# def save_image(filename, image):
+#     print(f"Saving image to: {filename}")  # Debug: Print saving path
+#     cv2.imwrite(filename, image)
+
+# # Logging function to print results to the terminal
+# def log_results(image_name, level, method, optimization, thresholds, obj_value, ssim_value, psnr_value):
+#     print(f"Image: {image_name} | Level: {level} | Method: {method} | Optimization: {optimization}")
+#     print(f"Thresholds: {thresholds}")
+#     print(f"Objective Function Value: {obj_value}")
+#     print(f"SSIM: {ssim_value} | PSNR: {psnr_value}\n")
+
+# # Main code to load images and apply methods
+# def main():
+#     folder = './Ass2'  # This points to the current folder where your images are located
+#     images = load_images_from_folder(folder)
+
+#     # Check if images are loaded
+#     if not images:
+#         print("No images found in the folder.")  # Debug: No images case
+#         return
+
+#     # Create output folders with better names
+#     create_output_folders()
+
+#     for filename, image in images:
+#         # Get the filename without the extension
+#         name_without_extension = os.path.splitext(filename)[0]
+#         print(f"Processing image: {filename}")  # Debug: Print processing image
+
+#         for k in [2, 3, 4, 5]:
+#             print(f"Processing k={k}")  # Debug: Print current threshold level
+
+#             # Simulated Annealing + Otsu
+#             sa_thresholds = simulated_annealing(image, otsu_objective, k)
+#             segmented_sa_otsu = otsu_multilevel_thresholding(image, len(sa_thresholds) + 1)[0]
+#             ssim_sa_otsu = ssim(image, segmented_sa_otsu)
+#             psnr_sa_otsu = psnr(image, segmented_sa_otsu)
+#             save_image(f'output/sa_otsu_k{k}/{name_without_extension}_sa_otsu_k{k}.png', segmented_sa_otsu)
+#             log_results(name_without_extension, k, "Otsu", "SA", sa_thresholds, otsu_objective(image, sa_thresholds), ssim_sa_otsu, psnr_sa_otsu)
+
+#             # Simulated Annealing + Kapur
+#             sa_thresholds = simulated_annealing(image, kapur_objective, k)
+#             segmented_sa_kapur = kapur_threshold(image, len(sa_thresholds) + 1)[0]
+#             ssim_sa_kapur = ssim(image, segmented_sa_kapur)
+#             psnr_sa_kapur = psnr(image, segmented_sa_kapur)
+#             save_image(f'output/sa_kapur_k{k}/{name_without_extension}_sa_kapur_k{k}.png', segmented_sa_kapur)
+#             log_results(name_without_extension, k, "Kapur", "SA", sa_thresholds, kapur_objective(image, sa_thresholds), ssim_sa_kapur, psnr_sa_kapur)
+
+#             # Variable Neighbourhood Search + Otsu
+#             vns_thresholds = vns(image, otsu_objective, k)
+#             segmented_vns_otsu = otsu_multilevel_thresholding(image, len(vns_thresholds) + 1)[0]
+#             ssim_vns_otsu = ssim(image, segmented_vns_otsu)
+#             psnr_vns_otsu = psnr(image, segmented_vns_otsu)
+#             save_image(f'output/vns_otsu_k{k}/{name_without_extension}_vns_otsu_k{k}.png', segmented_vns_otsu)
+#             log_results(name_without_extension, k, "Otsu", "VNS", vns_thresholds, otsu_objective(image, vns_thresholds), ssim_vns_otsu, psnr_vns_otsu)
+
+#             # Variable Neighbourhood Search + Kapur
+#             vns_thresholds = vns(image, kapur_objective, k)
+#             segmented_vns_kapur = kapur_threshold(image, len(vns_thresholds) + 1)[0]
+#             ssim_vns_kapur = ssim(image, segmented_vns_kapur)
+#             psnr_vns_kapur = psnr(image, segmented_vns_kapur)
+#             save_image(f'output/vns_kapur_k{k}/{name_without_extension}_vns_kapur_k{k}.png', segmented_vns_kapur)
+#             log_results(name_without_extension, k, "Kapur", "VNS", vns_thresholds, kapur_objective(image, vns_thresholds), ssim_vns_kapur, psnr_vns_kapur)
+
+# if __name__ == "__main__":
+#     main()
+
+# ! WITH CSV LOGGING
 import cv2
 import numpy as np
 import os
+import csv
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import peak_signal_noise_ratio as psnr
 
 # Function to load all images from the current folder
 def load_images_from_folder(folder):
@@ -700,4 +1113,83 @@ def kapur_objective(image, thresholds):
         mask = (image >= thresholds[i]) & (image < thresholds[i+1])
         hist, _ = np.histogram(image[mask], bins=256, range=[0, 256])
         hist = hist.astype(np.float32) / hist.sum()
-        entropy = -np.sum
+        entropy = -np.sum(hist * np.log(hist + 1e-10))
+        total_entropy += entropy
+    return -total_entropy
+
+# Save segmented image
+def save_image(filename, image):
+    print(f"Saving image to: {filename}")  # Debug: Print saving path
+    cv2.imwrite(filename, image)
+
+# Logging function to print results to the terminal and write to a CSV file
+def log_results(image_name, level, method, optimization, thresholds, obj_value, ssim_value, psnr_value, csv_writer):
+    print(f"Image: {image_name} | Level: {level} | Method: {method} | Optimization: {optimization}")
+    print(f"Thresholds: {thresholds}")
+    print(f"Objective Function Value: {obj_value}")
+    print(f"SSIM: {ssim_value} | PSNR: {psnr_value}\n")
+    
+    # Write to CSV
+    csv_writer.writerow([image_name, level, method, optimization, thresholds, obj_value, ssim_value, psnr_value])
+
+# Main code to load images and apply methods
+def main():
+    folder = './Ass2'  # This points to the current folder where your images are located
+    images = load_images_from_folder(folder)
+
+    # Check if images are loaded
+    if not images:
+        print("No images found in the folder.")  # Debug: No images case
+        return
+
+    # Create output folders with better names
+    create_output_folders()
+
+    # Open CSV file for writing
+    with open('results.csv', mode='w', newline='') as file:
+        csv_writer = csv.writer(file)
+        # Write header row in CSV
+        csv_writer.writerow(['Image', 'Level', 'Method', 'Optimization', 'Thresholds', 'Objective Value', 'SSIM', 'PSNR'])
+
+        for filename, image in images:
+            # Get the filename without the extension
+            name_without_extension = os.path.splitext(filename)[0]
+            print(f"Processing image: {filename}")  # Debug: Print processing image
+
+            for k in [2, 3, 4, 5]:
+                print(f"Processing k={k}")  # Debug: Print current threshold level
+
+                # Simulated Annealing + Otsu
+                sa_thresholds = simulated_annealing(image, otsu_objective, k)
+                segmented_sa_otsu = otsu_multilevel_thresholding(image, len(sa_thresholds) + 1)[0]
+                ssim_sa_otsu = ssim(image, segmented_sa_otsu)
+                psnr_sa_otsu = psnr(image, segmented_sa_otsu)
+                save_image(f'output/sa_otsu_k{k}/{name_without_extension}_sa_otsu_k{k}.png', segmented_sa_otsu)
+                log_results(name_without_extension, k, "Otsu", "SA", sa_thresholds, otsu_objective(image, sa_thresholds), ssim_sa_otsu, psnr_sa_otsu, csv_writer)
+
+                # Simulated Annealing + Kapur
+                sa_thresholds = simulated_annealing(image, kapur_objective, k)
+                segmented_sa_kapur = kapur_threshold(image, len(sa_thresholds) + 1)[0]
+                ssim_sa_kapur = ssim(image, segmented_sa_kapur)
+                psnr_sa_kapur = psnr(image, segmented_sa_kapur)
+                save_image(f'output/sa_kapur_k{k}/{name_without_extension}_sa_kapur_k{k}.png', segmented_sa_kapur)
+                log_results(name_without_extension, k, "Kapur", "SA", sa_thresholds, kapur_objective(image, sa_thresholds), ssim_sa_kapur, psnr_sa_kapur, csv_writer)
+
+                # Variable Neighbourhood Search + Otsu
+                vns_thresholds = vns(image, otsu_objective, k)
+                segmented_vns_otsu = otsu_multilevel_thresholding(image, len(vns_thresholds) + 1)[0]
+                ssim_vns_otsu = ssim(image, segmented_vns_otsu)
+                psnr_vns_otsu = psnr(image, segmented_vns_otsu)
+                save_image(f'output/vns_otsu_k{k}/{name_without_extension}_vns_otsu_k{k}.png', segmented_vns_otsu)
+                log_results(name_without_extension, k, "Otsu", "VNS", vns_thresholds, otsu_objective(image, vns_thresholds), ssim_vns_otsu, psnr_vns_otsu, csv_writer)
+
+                # Variable Neighbourhood Search + Kapur
+                vns_thresholds = vns(image, kapur_objective, k)
+                segmented_vns_kapur = kapur_threshold(image, len(vns_thresholds) + 1)[0]
+                ssim_vns_kapur = ssim(image, segmented_vns_kapur)
+                psnr_vns_kapur = psnr(image, segmented_vns_kapur)
+                save_image(f'output/vns_kapur_k{k}/{name_without_extension}_vns_kapur_k{k}.png', segmented_vns_kapur)
+                log_results(name_without_extension, k, "Kapur", "VNS", vns_thresholds, kapur_objective(image, vns_thresholds), ssim_vns_kapur, psnr_vns_kapur, csv_writer)
+
+if __name__ == "__main__":
+    main()
