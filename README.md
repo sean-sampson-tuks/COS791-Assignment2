@@ -17,21 +17,21 @@
 - pip install numpy
 - pip install scikit-image
 
-**Once python and relevant libraries are installed please proceed to the next step:**
+**Once python, jupyter notebook and relevant libraries are installed please proceed to the next step:**
 
 #### Command to run project
-- python assignment1_main.py
+- open the u24101754-ass2.ipynb file
+- results should already be displayed in notebook
+    - 
+- click the run all cells button to view results
 
 #### Folder Structure
-- u24101754_Ass1
-    - Dataset
-    **results will be shown only after running assignment1_main.py**
-    - results
-        - general-optimised-pipeline
-        - per-image-optimised-pipeline
-    - assignment1_main.py
+- u24101754_Ass2
+    - Ass2 (folder with images)
+    - u24101754-ass2.ipynb
     - README.md
-    - u24101754_Ass1_Report.pdf
+    - u24101754_Ass2_Report.pdf
+    - processed_results.csv
 
 
 
