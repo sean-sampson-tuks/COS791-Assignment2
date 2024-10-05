@@ -21,9 +21,8 @@
 
 #### Command to run project
 - open the u24101754-ass2.ipynb file
-- results should already be displayed in notebook
-    - 
-- click the run all cells button to view results
+- results should already be displayed in jupyter notebook
+    - if results do not show simply click the "Run All" cells button to view results
 
 #### Folder Structure
 - u24101754_Ass2
@@ -33,5 +32,4 @@
     - u24101754_Ass2_Report.pdf
     - processed_results.csv
 
-
-
+#### FINISH LIBRARIES THAT NEED TO BE IMPORTED
