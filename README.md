@@ -1,35 +1,37 @@
-# COS791 - Image Analysis and Understanding
-## Assignment 2
-### Sean Sampson (u24101754)
+# COS791 - Image Analysis and Understanding  
+## Assignment 2  
+### Sean Sampson (u24101754)  
 
-#### Requirements to run this file 
-- python
-- jupyter notebook
+#### Requirements to run this file  
+- Python  
+- Jupyter Notebook  
 
-#### Python libraries used
-- **OpenCV (cv2)**: This library is utlised for image processing tasks used in this project such as Gaussian blur, Hough Transform, Sobel as well as the standard Canny Edge Detection.
-- **NumPy**: This is used for mathematical calculations.
-- **scikit-image (ssim)**: This library is for calculating the structural similarity index (SSIM) which compares the image quality.
-- **os**: This would handle accessing of file paths and directories.
+#### Python libraries used  
+- **OpenCV (cv2)**: Utilized for various image processing tasks such as Gaussian blur, Hough Transform, Sobel, and Canny Edge Detection.  
+- **NumPy**: Used for mathematical computations and handling arrays.  
+- **Pandas (pd)**: Used for handling data frames and CSV files to process and store the results.  
+- **scikit-image (ssim, psnr)**: Used for calculating image quality metrics, including the Structural Similarity Index (SSIM) and Peak Signal-to-Noise Ratio (PSNR).  
+- **os**: Handles file path and directory management in the project.  
+- **Matplotlib (plt)**: Used for visualizing image results and displaying graphs of the segmentation performance.  
 
-#### Command to run to install each library
-- pip install opencv-python
-- pip install numpy
-- pip install scikit-image
+#### Commands to install each library  
+- `pip install opencv-python`  
+- `pip install numpy`  
+- `pip install pandas`  
+- `pip install scikit-image`  
+- `pip install matplotlib`  
 
-**Once python, jupyter notebook and relevant libraries are installed please proceed to the next step:**
+**Once Python, Jupyter Notebook, and the relevant libraries are installed, please proceed to the next step:**  
 
-#### Command to run project
-- open the u24101754-ass2.ipynb file
-- results should already be displayed in jupyter notebook
-    - if results do not show simply click the "Run All" cells button to view results
+#### Command to run the project  
+- Open the `u24101754-ass2.ipynb` file in Jupyter Notebook.  
+- The results should already be displayed in Jupyter Notebook.  
+    - If results are not visible, click the "Run All" cells button to generate and view the results.  
 
-#### Folder Structure
-- u24101754_Ass2
-    - Ass2 (folder with images)
-    - u24101754-ass2.ipynb
-    - README.md
-    - u24101754_Ass2_Report.pdf
-    - processed_results.csv
-
-#### FINISH LIBRARIES THAT NEED TO BE IMPORTED
+#### Folder Structure  
+- `u24101754_Ass2`  
+    - `Ass2` (folder with images)  
+    - `u24101754-ass2.ipynb`  
+    - `README.md`  
+    - `u24101754_Ass2_Report.pdf`  
+    - `processed_results.csv`  
